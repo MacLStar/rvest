@@ -276,22 +276,37 @@ submit_form <- function(session, form, submit = NULL, ...) {
   }
 }
 
+is_submit <- function(x) {
+  identical(tolower(x$type), "submit") || identical(tolower(x$type), "image")
+}
+
 submit_request <- function(form, submit = NULL) {
-  submits <- Filter(function(x) {
-      identical(tolower(x$type), "submit") | identical(tolower(x$type), "image")
-  }, form$fields)
+  submits <- Filter(is_submit, form$fields)
+
   if (is.null(submit)) {
-    submit <- names(submits)[[1]]
-    message("Submitting with '", submit, "'")
-  }
-  if (!(submit %in% names(submits))) {
+    submit_pos <- 1L
+  } else if (is.character(submit)) {
+    submit_pos <- which(names(submits) == submit)[[1L]]
+    if (length(submit_pos) == 0L) {
+      stop(
+        "Unknown submission name '", submit, "'.\n",
+        "Possible values: ", paste0(names(submits), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    submit_pos <- submit_pos[[1L]]
+  } else if (is.numeric(submit)) {
+    submit_pos <- submit
+  } else {
     stop(
       "Unknown submission name '", submit, "'.\n",
       "Possible values: ", paste0(names(submits), collapse = ", "),
       call. = FALSE
     )
+    stop("Invalid submit: ", submit, call. = FALSE)
   }
-  other_submits <- setdiff(names(submits), submit)
+  message("Submitting with '",
+          names(submits)[submit_pos], "' (position ", submit_pos, ")")
 
   # Parameters needed for http request -----------------------------------------
   method <- form$method
@@ -302,9 +317,14 @@ submit_request <- function(form, submit = NULL) {
 
   url <- form$url
 
-  fields <- form$fields
-  fields <- Filter(function(x) length(x$value) > 0, fields)
-  fields <- fields[setdiff(names(fields), other_submits)]
+  # We are using our submit button and all non-button form fields, excluding
+  # all other submit buttons
+  my_fields <- vapply(
+    form$fields,
+    function(x) !is_submit(x) && length(x$value) > 0,
+    logical(1))
+  my_fields[[submit_pos]] <- TRUE
+  fields <- form$fields[my_fields]
 
   values <- pluck(fields, "value")
   names(values) <- names(fields)
