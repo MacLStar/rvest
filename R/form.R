@@ -249,7 +249,7 @@ set_values <- function(form, ...) {
 #'
 #' @param session Session to submit form to.
 #' @param form Form to submit
-#' @param submit Name of submit button to use. If not supplied, defaults to
+#' @param submit Name of submit button to use or the position of the submit button in the form (integer value). If not supplied, defaults to
 #'   first submission button on the form (with a message).
 #' @param ... Additional arguments passed on to \code{\link[httr]{GET}()}
 #'   or \code{\link[httr]{POST}()}
@@ -296,6 +296,12 @@ submit_request <- function(form, submit = NULL) {
     }
     submit_pos <- submit_pos[[1L]]
   } else if (is.numeric(submit)) {
+      # Throwing error, when the indicated number of the button exceeds the limits
+        if((submit < 1)  | submit > (length(submits))) {
+          warning("The indicated position of the submit button, ",submit, "exceeds the number of buttons available, ",
+                  length(submits), ". Set to default: Select the last submit button in the form.")
+          submit <- length(submits)
+        }
     submit_pos <- submit
   } else {
     stop(
@@ -323,7 +329,17 @@ submit_request <- function(form, submit = NULL) {
     form$fields,
     function(x) !is_submit(x) && length(x$value) > 0,
     logical(1))
-  my_fields[[submit_pos]] <- TRUE
+
+  # choose which field to active in my field
+  if(is.character(submit)) {
+    selector = which(names(form$fields)==submit)
+    selector = selector[[1L]]
+  }else{
+    selector = length(form$fields) - length(submits) + submit
+  }
+
+  # Select the
+  my_fields[[selector]] <- TRUE
   fields <- form$fields[my_fields]
 
   values <- pluck(fields, "value")
