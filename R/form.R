@@ -249,7 +249,7 @@ set_values <- function(form, ...) {
 #'
 #' @param session Session to submit form to.
 #' @param form Form to submit
-#' @param submit Name of submit button to use. If not supplied, defaults to
+#' @param submit Name of submit button to use or the position of the submit button in the form (integer value). If not supplied, defaults to
 #'   first submission button on the form (with a message).
 #' @param ... Additional arguments passed on to \code{\link[httr]{GET}()}
 #'   or \code{\link[httr]{POST}()}
